@@ -26,14 +26,26 @@
     <!-- 3D WEBGL MODEL (LEFT ~60%) -->
     <div id="canvas-container">
       <!-- Overlay Instructions for User -->
-      <div class="absolute top-3 left-3 pointer-events-none z-10 flex flex-col gap-1 text-[11px] font-mono text-slate-400 bg-slate-950/70 p-2.5 rounded border border-slate-800/80 backdrop-blur-sm">
+      <div class="absolute top-3 left-3 pointer-events-none z-10 flex flex-col gap-1 text-[11px] font-mono text-slate-400 bg-slate-950/75 p-2.5 rounded-lg border border-slate-800/80 backdrop-blur-sm shadow-lg">
         <div class="text-amber-400 font-bold flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           PHYSICAL KINEMATIC SIMULATION (60 FPS)
         </div>
-        <div>Drag: Orbit / Rotate Model</div>
-        <div>Scroll: Zoom In / Out</div>
-        <div>Click Gear: Inspect Provenance & Ratios</div>
+        <div>Drag: 3D Rotate / Orbit</div>
+        <div>Scroll / Pinch: Zoom In & Out</div>
+        <div>Right Click / 2-Finger: Pan</div>
+        <div>Click Gear: Inspect Provenance</div>
+      </div>
+
+      <!-- Viewport Floating Controls: Zoom & Viewport Framing -->
+      <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-lg border border-slate-800/80 backdrop-blur-sm shadow-xl">
+        <button id="btn-zoom-in" class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-lg active:scale-95 transition-transform" title="Zoom In" aria-label="Zoom In">+</button>
+        <button id="btn-zoom-out" class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-lg active:scale-95 transition-transform" title="Zoom Out" aria-label="Zoom Out">−</button>
+        <button id="btn-fit-frame" class="px-2.5 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-mono font-semibold active:scale-95 transition-transform" title="Fit Nicely in Frame" aria-label="Fit Nicely in Frame">Fit Frame</button>
+        <div class="w-px h-5 bg-slate-800 mx-0.5"></div>
+        <button id="btn-hud-front" class="px-2 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono active:scale-95 transition-transform" title="Front Dial View">Front</button>
+        <button id="btn-hud-back" class="px-2 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono active:scale-95 transition-transform" title="Back Dial View">Back</button>
+        <button id="btn-hud-gears" class="px-2 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono active:scale-95 transition-transform" title="Internal Gear Stack">Gears</button>
       </div>
     </div>
 

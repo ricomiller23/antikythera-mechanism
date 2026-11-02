@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AntikytheraMaterials } from './materials.ts';
 import { createAntikytheraGearGeometry } from './gearGeometry.ts';
 import { FrontDials } from './dialsFront.ts';
@@ -40,8 +41,9 @@ const AXLE_COORDINATES: Record<string, { x: number; y: number }> = {
 export class AntikytheraScene {
   private container: HTMLElement;
   private scene: THREE.Scene;
-  private camera: THREE.PerspectiveCamera;
-  private renderer: THREE.WebGLRenderer;
+  public camera: THREE.PerspectiveCamera;
+  public renderer: THREE.WebGLRenderer;
+  public controls: OrbitControls;
   private materials: AntikytheraMaterials;
   private kinematicsEngine: AntikytheraKinematicsEngine;
 
@@ -54,12 +56,6 @@ export class AntikytheraScene {
   private caseGroup: THREE.Group;
   private framePlatesGroup: THREE.Group;
 
-  // Controls & Interaction
-  private isDragging: boolean = false;
-  private previousMousePosition = { x: 0, y: 0 };
-  private cameraTarget = new THREE.Vector3(0, 0, 0);
-  private cameraSpherical = new THREE.Spherical(220, Math.PI / 2.3, 0.2);
-  
   // State toggles
   public explodedSpread: number = 0.0;
   public showCase: boolean = true;
@@ -76,25 +72,44 @@ export class AntikytheraScene {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0c0f17);
 
-    const aspect = container.clientWidth / container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(42, aspect, 1, 2000);
-    this.updateCameraPosition();
+    const initialW = Math.max(container.clientWidth, 300);
+    const initialH = Math.max(container.clientHeight, 300);
+    const aspect = initialW / initialH;
+
+    this.camera = new THREE.PerspectiveCamera(40, aspect, 1, 2500);
 
     // 2. High-Performance PBR Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(initialW, initialH, false);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Append canvas to container
     container.appendChild(this.renderer.domElement);
 
-    // 3. Lighting (Antique horological studio lighting)
+    // 3. 3D Orbit & Zoom Controls
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.06;
+    this.controls.enableZoom = true;
+    this.controls.zoomSpeed = 1.0;
+    this.controls.minDistance = 60;
+    this.controls.maxDistance = 1200;
+    this.controls.enablePan = true;
+    this.controls.screenSpacePanning = true;
+    this.controls.target.set(0, 0, 0);
+
+    // Set initial camera position framing the mechanism nicely
+    this.fitToFrame();
+
+    // 4. Lighting (Antique horological studio lighting)
     this.materials = new AntikytheraMaterials();
     this.setupLighting();
 
-    // 4. Construct Gears & Subsystems
+    // 5. Construct Gears & Subsystems
     this.caseGroup = new THREE.Group();
     this.caseGroup.name = 'bronzeCaseGroup';
     this.framePlatesGroup = new THREE.Group();
@@ -106,7 +121,7 @@ export class AntikytheraScene {
     this.buildGears();
     this.buildCaseAndFramePlates();
 
-    // 5. Mount Front and Back Dials & Comets
+    // 6. Mount Front and Back Dials & Comets
     this.frontDials = new FrontDials(this.materials);
     this.frontDials.group.position.z = 18;
     this.scene.add(this.frontDials.group);
@@ -118,14 +133,14 @@ export class AntikytheraScene {
     this.comets = new CometVisualizer();
     this.scene.add(this.comets.group);
 
-    // 6. User Interactions
+    // 7. Event Listeners & HUD wiring
     this.setupEventListeners();
   }
 
   private setupLighting() {
     // Warm key directional light
     const keyLight = new THREE.DirectionalLight(0xfffaed, 2.2);
-    keyLight.position.set(120, 140, 160);
+    keyLight.position.set(140, 160, 180);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
@@ -134,7 +149,7 @@ export class AntikytheraScene {
 
     // Cool rim light from rear
     const rimLight = new THREE.DirectionalLight(0x7dd3fc, 1.4);
-    rimLight.position.set(-120, -80, -160);
+    rimLight.position.set(-140, -100, -180);
     this.scene.add(rimLight);
 
     // Subtle amber ambient fill
@@ -142,17 +157,16 @@ export class AntikytheraScene {
     this.scene.add(ambLight);
 
     // Dial focal highlights
-    const frontDialLight = new THREE.PointLight(0xfef08a, 1.0, 300);
-    frontDialLight.position.set(0, 0, 80);
+    const frontDialLight = new THREE.PointLight(0xfef08a, 1.0, 350);
+    frontDialLight.position.set(0, 0, 90);
     this.scene.add(frontDialLight);
 
-    const backDialLight = new THREE.PointLight(0x93c5fd, 0.9, 300);
-    backDialLight.position.set(0, 0, -80);
+    const backDialLight = new THREE.PointLight(0x93c5fd, 0.9, 350);
+    backDialLight.position.set(0, 0, -90);
     this.scene.add(backDialLight);
   }
 
   private buildGears() {
-    // Clear any previous meshes
     for (const mesh of this.gearMeshes.values()) {
       this.scene.remove(mesh);
     }
@@ -171,7 +185,6 @@ export class AntikytheraScene {
       mesh.name = gear.id;
       mesh.userData = { gearDef: gear };
 
-      // Each gear is wrapped in a group for independent axial positioning and rotation
       const group = new THREE.Group();
       group.name = `gear_group_${gear.id}`;
       
@@ -237,7 +250,6 @@ export class AntikytheraScene {
 
   public setExplodedView(spread: number) {
     this.explodedSpread = spread;
-    // Displace each gear group along Z by its native axialZ * (1 + spread)
     const gearCatalog = this.kinematicsEngine.getGearDefinitions();
     for (const gear of gearCatalog) {
       const group = this.gearGroups.get(gear.id);
@@ -247,7 +259,6 @@ export class AntikytheraScene {
       }
     }
 
-    // Displace dial plates
     this.frontDials.group.position.z = 18 + spread * 40;
     this.backDials.group.position.z = -18 - spread * 40;
   }
@@ -273,75 +284,136 @@ export class AntikytheraScene {
     this.showPlanets = show;
   }
 
+  public calculateFrameDistance(): number {
+    const aspect = this.camera.aspect || 1.0;
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    
+    // Total bounding dimensions of the Antikythera case
+    const caseHeight = 240; // mm
+    const caseWidth = 160;  // mm
+    const margin = 1.18;    // Clean breathing room, filling ~85% of viewport
+
+    const distForHeight = (caseHeight * margin) / (2 * Math.tan(fovRad / 2));
+    const distForWidth = (caseWidth * margin) / (2 * Math.tan(fovRad / 2) * aspect);
+
+    return Math.max(distForHeight, distForWidth);
+  }
+
+  public fitToFrame() {
+    const dist = this.calculateFrameDistance();
+    this.controls.target.set(0, 0, 0);
+
+    // Current direction vector from target
+    const currentDir = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+    if (currentDir.lengthSq() < 1) {
+      // Default to slightly angled front view
+      currentDir.set(dist * 0.1, dist * 0.15, dist);
+    } else {
+      currentDir.setLength(dist);
+    }
+
+    this.camera.position.copy(currentDir);
+    this.controls.update();
+  }
+
+  public zoomIn(factor: number = 0.8) {
+    const offset = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+    const newLen = Math.max(this.controls.minDistance, offset.length() * factor);
+    offset.setLength(newLen);
+    this.camera.position.copy(this.controls.target).add(offset);
+    this.controls.update();
+  }
+
+  public zoomOut(factor: number = 1.25) {
+    const offset = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+    const newLen = Math.min(this.controls.maxDistance, offset.length() * factor);
+    offset.setLength(newLen);
+    this.camera.position.copy(this.controls.target).add(offset);
+    this.controls.update();
+  }
+
   public setCameraPreset(preset: 'front' | 'back' | 'side' | 'gear_stack' | 'exploded') {
+    const dist = this.calculateFrameDistance();
+    this.controls.target.set(0, 0, 0);
+
     switch (preset) {
       case 'front':
-        this.cameraSpherical.set(220, Math.PI / 2, 0);
+        this.camera.position.set(0, 0, dist);
         this.setExplodedView(0.0);
+        this.setShowCase(this.showCase);
         break;
       case 'back':
-        this.cameraSpherical.set(220, Math.PI / 2, Math.PI);
+        this.camera.position.set(0, 0, -dist);
         this.setExplodedView(0.0);
+        this.setShowCase(this.showCase);
         break;
       case 'side':
-        this.cameraSpherical.set(220, Math.PI / 2, Math.PI / 2);
+        this.camera.position.set(dist, 0, 0);
         this.setExplodedView(0.0);
+        this.setShowCase(this.showCase);
         break;
       case 'gear_stack':
-        this.cameraSpherical.set(200, Math.PI / 2.6, 0.45);
+        this.camera.position.set(dist * 0.45, dist * 0.35, dist * 0.85);
         this.setShowCase(false);
         this.setExplodedView(0.6);
         break;
       case 'exploded':
-        this.cameraSpherical.set(260, Math.PI / 2.4, 0.7);
+        this.camera.position.set(dist * 0.55, dist * 0.45, dist * 1.0);
         this.setShowCase(false);
         this.setExplodedView(1.8);
         break;
     }
-    this.updateCameraPosition();
+    this.controls.update();
   }
 
-  private updateCameraPosition() {
-    this.camera.position.setFromSpherical(this.cameraSpherical).add(this.cameraTarget);
-    this.camera.lookAt(this.cameraTarget);
+  public onResize() {
+    if (!this.container) return;
+    const rect = this.container.getBoundingClientRect();
+    const w = Math.floor(rect.width) || this.container.clientWidth;
+    const h = Math.floor(rect.height) || this.container.clientHeight;
+
+    if (w <= 0 || h <= 0) return;
+
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h, false);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.controls.update();
   }
 
   private setupEventListeners() {
+    // 1. ResizeObserver for responsive fluid canvas fitting
+    const ro = new ResizeObserver(() => {
+      this.onResize();
+    });
+    ro.observe(this.container);
+
+    window.addEventListener('resize', () => {
+      this.onResize();
+    });
+
+    // Double check on next frame when DOM flex layout has settled
+    requestAnimationFrame(() => {
+      this.onResize();
+      this.fitToFrame();
+    });
+
+    // 2. Raycast Selection with drag tolerance
     const dom = this.renderer.domElement;
-
-    dom.addEventListener('mousedown', (e) => {
-      this.isDragging = true;
-      this.previousMousePosition = { x: e.clientX, y: e.clientY };
-    });
-
-    window.addEventListener('mouseup', () => {
-      this.isDragging = false;
-    });
-
-    dom.addEventListener('mousemove', (e) => {
-      if (this.isDragging) {
-        const deltaX = e.clientX - this.previousMousePosition.x;
-        const deltaY = e.clientY - this.previousMousePosition.y;
-
-        this.cameraSpherical.theta -= deltaX * 0.008;
-        this.cameraSpherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, this.cameraSpherical.phi + deltaY * 0.008));
-        this.updateCameraPosition();
-
-        this.previousMousePosition = { x: e.clientX, y: e.clientY };
-      }
-    });
-
-    dom.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      this.cameraSpherical.radius = Math.max(50, Math.min(600, this.cameraSpherical.radius + e.deltaY * 0.25));
-      this.updateCameraPosition();
-    }, { passive: false });
-
-    // Click / Raycast Selection
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
+    let pointerDownPos = { x: 0, y: 0 };
 
-    dom.addEventListener('click', (e) => {
+    dom.addEventListener('pointerdown', (e) => {
+      pointerDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    dom.addEventListener('pointerup', (e) => {
+      const dx = e.clientX - pointerDownPos.x;
+      const dy = e.clientY - pointerDownPos.y;
+      // If user dragged to rotate or pan in 3D, do not trigger gear selection
+      if (Math.hypot(dx, dy) > 6) return;
+
       const rect = dom.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -359,18 +431,39 @@ export class AntikytheraScene {
       }
     });
 
-    window.addEventListener('resize', () => {
-      if (!this.container) return;
-      const w = this.container.clientWidth;
-      const h = this.container.clientHeight;
-      this.camera.aspect = w / h;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(w, h);
-    });
+    // 3. Floating Viewport HUD Button wiring
+    const btnZoomIn = document.getElementById('btn-zoom-in');
+    if (btnZoomIn) {
+      btnZoomIn.addEventListener('click', () => this.zoomIn());
+    }
+
+    const btnZoomOut = document.getElementById('btn-zoom-out');
+    if (btnZoomOut) {
+      btnZoomOut.addEventListener('click', () => this.zoomOut());
+    }
+
+    const btnFit = document.getElementById('btn-fit-frame');
+    if (btnFit) {
+      btnFit.addEventListener('click', () => this.fitToFrame());
+    }
+
+    const btnHudFront = document.getElementById('btn-hud-front');
+    if (btnHudFront) {
+      btnHudFront.addEventListener('click', () => this.setCameraPreset('front'));
+    }
+
+    const btnHudBack = document.getElementById('btn-hud-back');
+    if (btnHudBack) {
+      btnHudBack.addEventListener('click', () => this.setCameraPreset('back'));
+    }
+
+    const btnHudGears = document.getElementById('btn-hud-gears');
+    if (btnHudGears) {
+      btnHudGears.addEventListener('click', () => this.setCameraPreset('gear_stack'));
+    }
   }
 
   public selectGear(gearId: string | null) {
-    // Reset previous selection emissive
     if (this.selectedGearId && this.gearMeshes.has(this.selectedGearId)) {
       const prevMesh = this.gearMeshes.get(this.selectedGearId)!;
       (prevMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = this.colorCodeGears ? 0.4 : 0.0;
@@ -393,7 +486,6 @@ export class AntikytheraScene {
   }
 
   public update(state: KinematicState, yearsElapsed: number) {
-    // 1. Rotate each physical gear mesh strictly per its kinematic angle
     for (const [id, angle] of Object.entries(state.gearAngles)) {
       const mesh = this.gearMeshes.get(id);
       if (mesh) {
@@ -401,17 +493,13 @@ export class AntikytheraScene {
       }
     }
 
-    // 2. Update Front Dials (Sun, Moon phase, Planets)
     this.frontDials.update(state, this.showPlanets);
-
-    // 3. Update Back Dials (Metonic, Games, Saros, Exeligmos)
     this.backDials.update(state);
-
-    // 4. Update Modern Comet Tracks Overlay
     this.comets.update(yearsElapsed);
   }
 
   public render() {
+    this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }
