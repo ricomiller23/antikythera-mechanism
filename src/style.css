@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-main: #0c0f17;
+  --bg-panel: #111622;
+  --bg-card: #182030;
+  --border: #242f44;
+  --bronze: #c89658;
+  --gold: #f59e0b;
+  --accent: #38bdf8;
+  --font-display: 'Cinzel', serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-main);
+  color: #f1f5f9;
+  font-family: var(--font-sans);
+}
+
+#app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#canvas-container {
+  flex: 6;
+  height: 100%;
+  position: relative;
+  background: radial-gradient(circle at center, #161c28 0%, #0c0f17 100%);
+  overflow: hidden;
+}
+
+#dashboard-container {
+  flex: 4;
+  height: 100%;
+  min-width: 380px;
+  max-width: 580px;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+/* RESPONSIVE BREAKPOINT: Tablet & Mobile (Standard benchmark 390x844 iPhone) */
+@media (max-width: 1024px) {
+  #app {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  #canvas-container {
+    flex: none;
+    width: 100%;
+    height: 52vh;
+    min-height: 340px;
+  }
+
+  #dashboard-container {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 48vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* Subtle Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Typography Enhancements */
+h1, h2, h3 {
+  font-family: var(--font-sans);
+}
+.font-display {
+  font-family: var(--font-display);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Touch Targets for Mobile Accessibility */
+button, select, input[type="range"] {
+  touch-action: manipulation;
+}

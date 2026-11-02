@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>The Antikythera Mechanism — Working 3D Kinematic Model & Ancient Cosmos</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bronze: '#c89658',
+            verdigris: '#489080'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased overflow-hidden">
+  <div id="app">
+    <!-- 3D WEBGL MODEL (LEFT ~60%) -->
+    <div id="canvas-container">
+      <!-- Overlay Instructions for User -->
+      <div class="absolute top-3 left-3 pointer-events-none z-10 flex flex-col gap-1 text-[11px] font-mono text-slate-400 bg-slate-950/70 p-2.5 rounded border border-slate-800/80 backdrop-blur-sm">
+        <div class="text-amber-400 font-bold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          PHYSICAL KINEMATIC SIMULATION (60 FPS)
+        </div>
+        <div>Drag: Orbit / Rotate Model</div>
+        <div>Scroll: Zoom In / Out</div>
+        <div>Click Gear: Inspect Provenance & Ratios</div>
+      </div>
+    </div>
+
+    <!-- CONTROLS & ASTRONOMICAL LAB (RIGHT ~40%) -->
+    <div id="dashboard-container"></div>
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
